@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Modern Scientific Calculator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg1: #ff9a9e;
+      --bg2: #fad0c4;
+      --glass: rgba(255,255,255,0.12);
+      --text: #0b1020;
+      --accent: linear-gradient(135deg,#667eea,#764ba2);
+      --op-gradient: linear-gradient(135deg,#ff6a88,#ff9472);
+      --sci-gradient: linear-gradient(135deg,#43cea2,#185a9d);
+      --neutral-gradient: linear-gradient(135deg,#e6e9f0,#eef2f3);
+      --glass-border: rgba(255,255,255,0.25);
+    }
+    .dark{
+      --bg1:#0f2027;
+      --bg2:#243b55;
+      --glass: rgba(10,14,22,0.45);
+      --text: #e6eef8;
+      --accent: linear-gradient(135deg,#00d2ff,#3a7bd5);
+      --op-gradient: linear-gradient(135deg,#ff416c,#ff4b2b);
+      --sci-gradient: linear-gradient(135deg,#7f53ac,#647dee);
+      --neutral-gradient: linear-gradient(135deg,#172b4d,#213b5d);
+      --glass-border: rgba(255,255,255,0.06);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:'Roboto Mono',monospace;}
+
+    /* animated gradient background */
+    body{
+      background: radial-gradient(circle at 10% 10%, var(--bg1), transparent 15%),
+                  radial-gradient(circle at 90% 90%, var(--bg2), transparent 20%),
+                  linear-gradient(120deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
+      background-size: 400% 400%;
+      animation: bgShift 18s ease-in-out infinite;
+      color:var(--text);
+      display:flex;align-items:center;justify-content:center;padding:2rem;
+      transition: background 600ms ease;
+    }
+    @keyframes bgShift{
+      0%{background-position:0% 50%;}
+      50%{background-position:100% 50%;}
+      100%{background-position:0% 50%;}
+    }
+
+    .app{
+      width: min(960px, 96%);
+      max-width:1100px;
+      display:grid;grid-template-columns: 1fr 380px;gap:1.5rem;
+    }
+
+    /* glass container */
+    .calc{
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      border-radius:20px;padding:1rem;padding-top:1.25rem;
+      backdrop-filter: blur(10px) saturate(1.1);
+      -webkit-backdrop-filter: blur(10px) saturate(1.1);
+      border:1px solid var(--glass-border);
+      box-shadow: 0 10px 30px rgba(2,6,23,0.28);
+      display:flex;flex-direction:column;gap:0.75rem;
+      min-height:520px;
+      transition: all 300ms ease;
+    }
+
+    .header{
+      display:flex;align-items:center;justify-content:space-between;padding:0.25rem 0.5rem;
+    }
+    .title{font-weight:600;font-size:1.05rem}
+    .toggles{display:flex;gap:0.5rem;align-items:center}
+    .theme-switch{display:flex;align-items:center;gap:0.5rem}
+
+    /* display area */
+    .display{
+      background: transparent;border-radius:12px;padding:0.8rem 1rem;min-height:100px;display:flex;flex-direction:column;justify-content:center;align-items:flex-end;gap:0.2rem;
+    }
+    .secondary{font-size:0.9rem;opacity:0.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;}
+    .primary{font-size:2.2rem;font-weight:600;word-break:break-all;max-width:100%;}
+
+    /* buttons grid */
+    .keys{display:grid;grid-template-columns: repeat(6,1fr);gap:0.6rem;padding:0.6rem}
+
+    button.key{
+      border: none;padding:0.75rem;border-radius:12px;font-size:1rem;cursor:pointer;min-height:48px;box-shadow:0 6px 14px rgba(12,20,40,0.12);transition:transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;outline:none
+    }
+    button.key:active{transform:translateY(2px);box-shadow:0 3px 8px rgba(12,20,40,0.08)}
+
+    /* color coding */
+    .neutral{background:var(--neutral-gradient);color:var(--text)}
+    .op{background:var(--op-gradient);color:white;font-weight:600}
+    .sci{background:var(--sci-gradient);color:white}
+    .accent{background:var(--accent);color:white}
+    .func{background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(0,0,0,0.02));border:1px solid rgba(255,255,255,0.06);color:var(--text)}
+
+    /* large buttons */
+    .span-2{grid-column: span 2}
+    .span-3{grid-column: span 3}
+
+    /* right panel: history */
+    .panel{
+      background: var(--glass);border-radius:18px;padding:1rem;border:1px solid var(--glass-border);min-height:520px;display:flex;flex-direction:column;gap:0.6rem;
+    }
+    .history{overflow:auto;padding:0.5rem;flex:1;border-radius:8px}
+    .history-item{padding:0.5rem;border-radius:8px;margin-bottom:0.35rem;display:flex;justify-content:space-between;align-items:center;gap:0.5rem}
+    .history-item:hover{background:rgba(255,255,255,0.02);cursor:pointer}
+
+    /* responsive */
+    @media (max-width:900px){
+      .app{grid-template-columns:1fr;}
+      .panel{order:2}
+      .calc{order:1}
+      .keys{grid-template-columns:repeat(4,1fr)}
+    }
+
+    /* accessibility focus */
+    button.key:focus{outline:3px solid rgba(80,160,255,0.18)}
+
+    /* footer small labels */
+    .small{font-size:0.85rem;color:var(--text);opacity:0.85}
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="calc" role="application" aria-label="Madyfication">
+      <div class="header">
+        <div class="title">Scientific Calculator</div>
+        <div class="toggles">
+          <div class="theme-switch" title="Toggle theme">
+            <button id="themeBtn" aria-label="Toggle theme" class="func" style="padding:0.45rem 0.6rem;border-radius:10px">☀️/🌙</button>
+          </div>
+          <div style="display:flex;gap:0.4rem;align-items:center">
+            <label class="small">Deg</label>
+            <input id="angleToggle" type="checkbox" aria-label="Degrees mode toggle" />
+          </div>
+          <div style="display:flex;gap:0.4rem;align-items:center">
+            <label class="small">Sci</label>
+            <input id="modeToggle" type="checkbox" aria-label="Scientific mode toggle" checked />
+          </div>
+        </div>
+      </div>
+
+      <div class="display" id="display">
+        <div class="secondary" id="historyLine" aria-live="polite"></div>
+        <div class="primary" id="resultLine" aria-live="assertive">0</div>
+      </div>
+
+      <div class="keys" id="keys" role="grid" aria-label="Calculator keys">
+        <!-- Row 1 -->
+        <button class="key func" data-action="clear" aria-label="All clear">AC</button>
+        <button class="key func" data-action="back" aria-label="Backspace">⌫</button>
+        <button class="key func" data-action="toggle-sign" aria-label="Toggle sign">±</button>
+        <button class="key func" data-action="percent" aria-label="Percent">%</button>
+        <button class="key sci" data-action="pi" aria-label="Pi">π</button>
+        <button class="key sci" data-action="e" aria-label="Euler's number">e</button>
+
+        <!-- Row 2 -->
+        <button class="key sci" data-insert="sin(" aria-label="sine">sin</button>
+        <button class="key sci" data-insert="cos(" aria-label="cosine">cos</button>
+        <button class="key sci" data-insert="tan(" aria-label="tangent">tan</button>
+        <button class="key sci" data-insert="asin(" aria-label="arcsine">asin</button>
+        <button class="key sci" data-insert="acos(" aria-label="arccos">acos</button>
+        <button class="key sci" data-insert="atan(" aria-label="arctan">atan</button>
+
+        <!-- Row 3 -->
+        <button class="key sci" data-insert="sinh(" aria-label="sinh">sinh</button>
+        <button class="key sci" data-insert="cosh(" aria-label="cosh">cosh</button>
+        <button class="key sci" data-insert="tanh(" aria-label="tanh">tanh</button>
+        <button class="key sci" data-insert="ln(" aria-label="natural log">ln</button>
+        <button class="key sci" data-insert="log10(" aria-label="log base 10">log10</button>
+        <button class="key sci" data-action="fact" aria-label="factorial">n!</button>
+
+        <!-- Row 4 -->
+        <button class="key neutral" data-insert="7">7</button>
+        <button class="key neutral" data-insert="8">8</button>
+        <button class="key neutral" data-insert="9">9</button>
+        <button class="key op" data-insert="/">÷</button>
+        <button class="key op" data-action="pow2" aria-label="square">x²</button>
+        <button class="key sci" data-action="pow" aria-label="power">xʸ</button>
+
+        <!-- Row 5 -->
+        <button class="key neutral" data-insert="4">4</button>
+        <button class="key neutral" data-insert="5">5</button>
+        <button class="key neutral" data-insert="6">6</button>
+        <button class="key op" data-insert="*">×</button>
+        <button class="key sci" data-action="sqrt" aria-label="square root">√</button>
+        <button class="key sci" data-action="cuberoot" aria-label="cube root">³√</button>
+
+        <!-- Row 6 -->
+        <button class="key neutral" data-insert="1">1</button>
+        <button class="key neutral" data-insert="2">2</button>
+        <button class="key neutral" data-insert="3">3</button>
+        <button class="key op" data-insert="-">−</button>
+        <button class="key sci" data-action="exp" aria-label="e^x">eˣ</button>
+        <button class="key sci" data-action="tenpow" aria-label="10^x">10ˣ</button>
+
+        <!-- Row 7 -->
+        <button class="key neutral span-2" data-insert="0">0</button>
+        <button class="key neutral" data-insert=".">.</button>
+        <button class="key op" data-insert="+">+</button>
+        <button class="key op" data-action="equals" aria-label="equals">=</button>
+        <button class="key sci" data-action="nthroot" aria-label="nth root">n√x</button>
+
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0 0.6rem">
+        <div class="small">Keyboard: numbers, + - * / Enter = Backspace Esc (AC)</div>
+        <div class="small">ARIA & responsive</div>
+      </div>
+    </div>
+
+    <div class="panel" aria-label="History panel">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-weight:600">History</div>
+        <div style="display:flex;gap:0.5rem">
+          <button id="clearHistory" class="func" style="padding:0.35rem 0.6rem;border-radius:8px">Clear</button>
+          <button id="muteBtn" class="func" style="padding:0.35rem 0.6rem;border-radius:8px">🔈</button>
+        </div>
+      </div>
+      <div class="history" id="historyList" tabindex="0" aria-live="polite"></div>
+      <div style="margin-top:0.6rem;display:flex;gap:0.5rem;align-items:center;justify-content:space-between">
+        <div class="small">Mode: <span id="modeLabel">Scientific</span></div>
+        <div class="small" id="angleLabel">Radians</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const body = document.body;
+      const app = document.getElementById('app');
+      const keys = document.getElementById('keys');
+      const resultLine = document.getElementById('resultLine');
+      const historyLine = document.getElementById('historyLine');
+      const historyList = document.getElementById('historyList');
+      const angleToggle = document.getElementById('angleToggle');
+      const modeToggle = document.getElementById('modeToggle');
+      const modeLabel = document.getElementById('modeLabel');
+      const angleLabel = document.getElementById('angleLabel');
+      const themeBtn = document.getElementById('themeBtn');
+      const clearHistoryBtn = document.getElementById('clearHistory');
+      const muteBtn = document.getElementById('muteBtn');
+
+      let expression = '';
+      let history = [];
+      let degMode = false;
+      let sciMode = true;
+      let mute = true;
+
+      function beep(){ if(!mute) new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=').play(); }
+
+      function setDisplay(){
+        historyLine.textContent = expression || '';
+        resultLine.textContent = expression || '0';
+        autoResize(resultLine);
+      }
+
+      function autoResize(el){
+        // simple auto-size using font scaling
+        const parentW = el.parentElement.clientWidth - 20;
+        el.style.fontSize = '2.2rem';
+        let fs = parseFloat(window.getComputedStyle(el).fontSize);
+        while(el.scrollWidth > parentW && fs > 12){ fs -= 1; el.style.fontSize = fs + 'px'; }
+      }
+
+      function pushToHistory(expr, res){
+        const entry = {expr,res,ts:Date.now()};
+        history.unshift(entry);
+        if(history.length>50) history.pop();
+        renderHistory();
+      }
+
+      function renderHistory(){
+        historyList.innerHTML = '';
+        history.forEach((h, i)=>{
+          const div = document.createElement('div');
+          div.className = 'history-item';
+          div.innerHTML = `<div style="opacity:0.85">${h.expr}</div><div style="font-weight:600">${h.res}</div>`;
+          div.tabIndex = 0;
+          div.addEventListener('click', ()=>{ expression = String(h.res); setDisplay(); beep(); });
+          div.addEventListener('keydown', (e)=>{ if(e.key==='Enter') { expression = String(h.res); setDisplay(); } });
+          historyList.appendChild(div);
+        });
+      }
+
+      function safeEval(raw){
+        // prepare expression for JS evaluation
+        try{
+          if(!raw || raw.trim()==='') return 0;
+          let r = raw.replace(/×/g,'*').replace(/÷/g,'/');
+          r = r.replace(/π/g,'(PI)');
+          r = r.replace(/(?<!\w)e(?=\W|$)/g,'(E)'); // standalone e
+
+          // replace power operator xʸ triggered by pow action we'll insert ^
+          r = r.replace(/\^/g,'**');
+
+          // factorial: replace number! with fact(number) - basic approach
+          r = r.replace(/(\d+\.?\d*)!/g, 'fact($1)');
+
+          // replace functions shorthand to our helpers
+          const map = ['sin','cos','tan','asin','acos','atan','sinh','cosh','tanh','ln','log10'];
+          map.forEach(fn=>{
+            const re = new RegExp(fn+'\\(', 'g');
+            r = r.replace(re, fn + '(');
+          });
+
+          // handle percent like 50% -> (50/100)
+          r = r.replace(/(\d+\.?\d*)%/g,'($1/100)');
+
+          // prepare a function-wrapped evaluation with helpers in scope
+          const helpers = `
+            const PI = Math.PI;
+            const E = Math.E;
+            const deg = ${degMode};
+            function toRad(x){ return deg ? (x*Math.PI/180) : x }
+            function sin(x){ return Math.sin(toRad(x)); }
+            function cos(x){ return Math.cos(toRad(x)); }
+            function tan(x){ return Math.tan(toRad(x)); }
+            function asin(x){ return (deg? (Math.asin(x)*180/Math.PI) : Math.asin(x)); }
+            function acos(x){ return (deg? (Math.acos(x)*180/Math.PI) : Math.acos(x)); }
+            function atan(x){ return (deg? (Math.atan(x)*180/Math.PI) : Math.atan(x)); }
+            function sinh(x){ return Math.sinh(x); }
+            function cosh(x){ return Math.cosh(x); }
+            function tanh(x){ return Math.tanh(x); }
+            function ln(x){ return Math.log(x); }
+            function log10(x){ return Math.log10 ? Math.log10(x) : Math.log(x)/Math.LN10; }
+            function fact(n){ n = Math.floor(n); if(n<0) throw 'Factorial of negative'; if(n>170) return Infinity; let res=1; for(let i=2;i<=n;i++)res*=i; return res; }
+            function root(n,x){ return Math.pow(x, 1/n); }
+            function pow2(x){ return Math.pow(x,2); }
+            function exp(x){ return Math.exp(x); }
+            function tenpow(x){ return Math.pow(10,x); }
+          `;
+
+          const fn = new Function(helpers + '\nreturn (' + r + ')');
+          const val = fn();
+
+          if(typeof val === 'number' && !isFinite(val)) throw 'Math error';
+          // format large numbers to scientific if needed
+          let out = val;
+          if(Math.abs(val) > 1e12 || (Math.abs(val) < 1e-6 && val !== 0)){
+            out = val.toExponential(10);
+          }
+          return out;
+        }catch(err){
+          throw err;
+        }
+      }
+
+      function evaluate(){
+        try{
+          const res = safeEval(expression);
+          pushToHistory(expression, res);
+          expression = String(res);
+          setDisplay();
+          beep();
+        }catch(e){
+          expression = 'Error';
+          setDisplay();
+          beep();
+        }
+      }
+
+      // button handling
+      keys.addEventListener('click', (e)=>{
+        const btn = e.target.closest('button'); if(!btn) return;
+        const insert = btn.dataset.insert;
+        const action = btn.dataset.action;
+        if(insert){ expression += insert; setDisplay(); beep(); return; }
+        if(action){ handleAction(action); beep(); }
+      });
+
+      function handleAction(action){
+        if(action === 'clear') { expression = ''; setDisplay(); return; }
+        if(action === 'back') { expression = expression.slice(0,-1); setDisplay(); return; }
+        if(action === 'toggle-sign'){
+          if(expression.startsWith('-')) expression = expression.slice(1); else expression = '-' + expression; setDisplay(); return;
+        }
+        if(action === 'percent'){ expression += '%'; setDisplay(); return; }
+        if(action === 'pi'){ expression += 'π'; setDisplay(); return; }
+        if(action === 'e'){ expression += 'e'; setDisplay(); return; }
+        if(action === 'equals'){ evaluate(); return; }
+        if(action === 'fact'){ expression += '!'; setDisplay(); return; }
+        if(action === 'pow2'){ expression += '^2'; setDisplay(); return; }
+        if(action === 'pow'){ expression += '^'; setDisplay(); return; }
+        if(action === 'sqrt'){ expression += 'root(2,'; setDisplay(); return; }
+        if(action === 'cuberoot'){ expression += 'root(3,'; setDisplay(); return; }
+        if(action === 'exp'){ expression += 'exp('; setDisplay(); return; }
+        if(action === 'tenpow'){ expression += 'tenpow('; setDisplay(); return; }
+        if(action === 'nthroot'){ /* prompt for n then add root(n,x)
+             simple ui: ask via prompt */
+          const n = prompt('Enter n for nth root (e.g. 4 for 4th root):');
+          const parsed = Number(n);
+          if(!isNaN(parsed) && parsed>0){ expression += 'root('+parsed+','; setDisplay(); }
+          return;
+        }
+      }
+
+      // keyboard
+      window.addEventListener('keydown', (e)=>{
+        if(e.key >= '0' && e.key <= '9') { expression += e.key; setDisplay(); return; }
+        if(e.key === '.') { expression += '.'; setDisplay(); return; }
+        if(e.key === 'Enter' || e.key === '='){ evaluate(); return; }
+        if(e.key === 'Backspace'){ expression = expression.slice(0,-1); setDisplay(); return; }
+        if(e.key === 'Escape'){ expression = ''; setDisplay(); return; }
+        if(['+','-','*','/','^','%'].includes(e.key)){ expression += e.key; setDisplay(); return; }
+        // letters for functions (simple mapping)
+        if(e.key.toLowerCase()==='p'){ expression += 'π'; setDisplay(); }
+      });
+
+      // toggles
+      angleToggle.addEventListener('change', ()=>{ degMode = angleToggle.checked; angleLabel.textContent = degMode ? 'Degrees' : 'Radians'; });
+      modeToggle.addEventListener('change', ()=>{ sciMode = modeToggle.checked; modeLabel.textContent = sciMode ? 'Scientific' : 'Basic'; document.querySelectorAll('.sci').forEach(el=>el.style.display = sciMode ? '' : 'none'); });
+      modeToggle.dispatchEvent(new Event('change'));
+
+      themeBtn.addEventListener('click', ()=>{ body.classList.toggle('dark'); });
+
+      clearHistoryBtn.addEventListener('click', ()=>{ history = []; renderHistory(); });
+      muteBtn.addEventListener('click', ()=>{ mute = !mute; muteBtn.textContent = mute ? '🔈' : '🔇'; });
+
+      // initial display
+      setDisplay();
+
+      // mobile friendly: increase touch size via CSS in media query (already handled by grid)
+
+      // simple note: when root( appears, users should close parenthesis after entering x.
+
+      // accessibility: focus first button
+      document.querySelector('button.key').focus();
+
+    })();
+  </script>
+</body>
+</html>
